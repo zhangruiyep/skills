@@ -1,11 +1,23 @@
 ---
 name: "c-coding-standard"
-description: "C语言编程规范V1.1。在生成或修改C/C++代码时必须遵循此规范。Invoke when generating new C/C++ code or when user asks to follow coding standards."
+description: "C语言编程规范V1.1（编码规范/代码风格/命名规范/注释规范）。所有涉及C/C++代码的任务都必须遵循本规范。Invoke when: (1) generating/creating any new C/C++ source file or code (write C code, implement, add function, create header, 新增C代码、写C程序、实现C函数、添加头文件); (2) modifying/editing existing C/C++ code (change, fix, refactor, update function, macro, variable, comment, header, 修改C代码、改C语言、调试修复C/C++、重构); (3) user asks to follow coding standards/style/comment/naming conventions (编码规范、编程规范、代码规范、代码风格、命名规范、注释规范、遵守规范、code style, style guide); (4) reviewing or auditing C/C++ code (code review, 代码审查、代码评审、检查代码规范); (5) any embedded/RTOS/SDK development on this project writing C code. Covers: English comments, indentation, Linux-style naming, macro/enum uppercase, typedef suffix, variable init before use, function <200 lines & nesting <=4, static globals, include guards, no magic numbers, input validation, macro-guarded code. | C语言编程规范V1.1，适用于本工程全部C/C++代码：生成新代码、修改现有代码、代码审查/重构，以及用户要求遵循编码/命名/注释规范时，必须先加载本技能并按规范执行。"
 ---
 
 # C语言编程规范 V1.1
 
 本规范适用于本项目所有C/C++代码。生成新代码或修改现有代码时，必须遵守以下规则。
+
+## 生效条件 / Invocation Conditions
+
+满足以下任一条件即应加载本技能（自动触发，无需用户显式指定）：
+
+- **条件 A（生成新代码）**：编写/创建任何 C/C++ 文件（`.c` / `.h` / `.cpp` / `.hpp`）或新增函数、宏、结构体、变量、注释等代码。
+- **条件 B（修改现有代码）**：修改、修复、重构、优化任何现有 C/C++ 代码，包括重命名、调整缩进/注释、拆分函数、改头文件等。
+- **条件 C（用户显式要求）**：用户提到“代码规范/编码规范/编程规范/代码风格/命名规范/注释规范/遵守规范”或英文 `coding standard / code style / style guide / naming convention` 等关键词。
+- **条件 D（代码审查）**：对 C/C++ 代码进行 code review、代码审查、代码评审、规范检查。
+- **条件 E（本工程开发）**：任何涉及本嵌入式/RTOS/SDK 工程的 C 代码开发任务。
+
+> 一句话：只要本次任务**接触或产生 C/C++ 代码**，就先加载本技能。
 
 ## 1. 注释规范
 
@@ -172,7 +184,7 @@ if (buf == NULL || len == 0) {
 ## 10. 宏控制代码规范
 
 - 使用宏控制的代码，必须确保**宏打开或关闭均可以编译通过**。
-- 除BSP模块外，其他模块**禁止直接使用项目宏**控制代码。
+- 除BSP模块外，其他模块**禁止直接使用项目级别的宏**控制代码。
 
 ```c
 // Good - 宏打开/关闭均能编译
