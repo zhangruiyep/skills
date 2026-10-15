@@ -19,14 +19,33 @@ description: 发送版本转测试通知邮件（版本已发布，请安排测�
 
 执行任何 `wecom-cli` 命令前，先读这两个技能的文档，禁止凭记忆拼参数：
 
-1. `wecomcli-shared` — 公共前置检查（CLI 安装、版本 ≥ 1.1.0、授权状态）
+1. `wecomcli-shared` — 公共前置检查（CLI 安装、版本达标、授权状态）
 2. `wecomcli-email` 及其 `references/send-mail.md` — 发送接口参数与流程
 
 ```powershell
 wecom-cli --version; wecom-cli auth show --status
 ```
 
-输出 `authorized` 且版本 ≥ 1.1.0 才继续。
+输出 `authorized` 且版本达到 `wecomcli-shared` 要求的最低版本（当前 ≥ 1.2.1）才继续。
+
+### 内置插件版本低 / 不可用时，改用全局 wecom-cli
+
+`wecom-cli` 在本机可能装有多份：PATH 里通常是 Trae 内置插件自带的，此外还可能有全局安装的（如 `C:\Users\zhang\AppData\Local\Programs\nodejs\wecom-cli.cmd`）。
+
+- 若 `wecom-cli --version` 低于最低版本要求，或内置插件不可用，**直接改用全局 wecom-cli 的绝对路径**执行：
+
+```powershell
+& 'C:\Users\zhang\AppData\Local\Programs\nodejs\wecom-cli.cmd' --version
+& 'C:\Users\zhang\AppData\Local\Programs\nodejs\wecom-cli.cmd' auth show --status
+```
+
+- 全局版本通常更高（如 1.3.4），可满足要求；若仍不达标，再执行 `npm install -g @wecom/cli` 升级后重试。
+- 选定其中一份后，后续所有 `auth` / `mail send` 命令都使用**同一份**（把命令里的 `wecom-cli` 换成所选绝对路径），不要混用。
+- 排查本机都有哪些 wecom-cli 时：
+
+```powershell
+Get-Command wecom-cli -All | Select-Object -ExpandProperty Source
+```
 
 ## 邮件要素
 
@@ -106,13 +125,18 @@ Hi <测试对接人>,
     1. …
 ```
 
+> 上面两组**均为可选**：以 `ReleaseNotes.md` 为准，某组没有实际内容时**整组省略**（不写该组标题、不写下级条目、不写「无」等占位）。
+
 要点：
 
 - UNC 路径必须包在反引号里，否则 Markdown 会吞掉反斜杠。
 - **版本原样使用**：版本由字母、数字、小数点组成（如 `R9.7.2`），直接把 `<版本>` 替换成用户给的值，不要自行加前缀或改字母。
 - 「版本号」字段（`FY6718_J9.7.2`）与主题里的版本（`R9.7.2`）不同，按用户给的原文照抄，不确定就问用户。
-- 修改点按「修改的功能或需求」「合入复云代码」两组分列，逐条编号。
-- **修改点来源**：从 MCU 固件包里的 `ReleaseNotes.md` 读取（一般在 MCU 版本固件包目录下，即 `<MCU 路径>\ReleaseNotes.md`），按其中内容整理成上面两组；读取失败或文件缺失就问用户要，不要编造。
+- **正文中「主要修改点」的内容一律从 ReleaseNotes 的 md 文件中获取**，不要根据 git 记录、聊天上下文或记忆自行推断、改写或补充。来源：MCU 固件包里的 `ReleaseNotes.md`（一般在 MCU 版本固件包目录下，即 `<MCU 路径>\ReleaseNotes.md`），取该版本对应条目的「主要修改点」，逐条编号、原文照搬；读取失败或文件缺失就问用户要，不要编造。
+- 修改点按「修改的功能或需求」「合入复云代码」两组分列；**每组都是有则写、无则整组不写**：
+  - ReleaseNotes 里**没有**「合入复云代码」这一组，或该组下没有任何实际内容时，**整组直接省略**，不要保留空标题、不要写「无」「暂无」「N/A」等占位内容，也不要拿别的版本的条目去凑。
+  - 该组没有内容就是本次版本确实未合入复云代码，属于正常情况，**禁止为了凑格式硬写一句**。
+  - 「修改的功能或需求」同理：无实际内容时整组省略。
 
 ### 实例（FY6718 R9.7.2，可作为格式参考）
 
@@ -153,7 +177,7 @@ FY6718 R9.7.2版本已发布，请安排测试。
 
 1. **收集要素**：按上表逐项确认，缺项追问用户。
 2. **确认固件路径存在**：用 `Test-Path` 校验 MCU / MDM 两条 UNC 路径都返回 `True` 才继续；任一条为 `False` 先跟用户核对项目名/版本再发。
-3. **读取修改点**：读 MCU 固件包目录下的 `ReleaseNotes.md`，按「修改的功能或需求」「合入复云代码」两组提取本次版本的修改点。
+3. **读取修改点**：读 MCU 固件包目录下的 `ReleaseNotes.md`，取本次版本条目作为「主要修改点」的**唯一来源**，原文照搬；某组（如「合入复云代码」）无实际内容就整组省略，不要写「无」或硬凑。
 4. **写正文文件**：用 Write 把正文写成 `.md`（如 `%TEMP%\mail_body_<项目>_<版本>.md`）。
 5. **展示预览**：把主题、收件人、抄送、正文在对话里完整呈现给用户确认。
 6. **dry-run 校验**：加 `--dry-run` 跑一次，确认 payload 里 to / cc / subject / file_path 都正确。

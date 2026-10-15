@@ -30,10 +30,13 @@ git log --pretty=format:"%h | %ad | %s" --date=short -N
 
 只处理时间范围内的 commit。
 
+> **本地与远程一致性**：拉取 commit 前先 `git fetch`，并核对本地与远程记录。**若本地 git 记录与远程不一致，一律以远程为准**——以远程分支的 commit 记录为准（远程有而本地缺的先 fetch 下来，本地有而远程没有的不采用），不采用本地未同步的记录。
+
 ### Step 2：过滤 commit
 
 - **跳过版本号 commit**：subject 含 `modify version to`、`修改版本`、`mcu version to` 等纯版本号修改，不写成修改点，仅用于确定版本号。
 - **跳过合并记录 commit**：subject 形如 `Merge "..." into watch`（Gerrit 的 merge 记录），真正的改动在它引用的那个 commit 里，不重复写。
+- **识别 gitee 同步 commit**：subject/body 含 `merge gitee code` / `合入 gitee` / `同步gitee` / `Sync from gitee` 的，走 Step 4 单独处理，不写入 `修改的功能或需求`。
 - 其余为功能 commit。
 
 ### Step 3：逐条转写为修改点
@@ -49,7 +52,13 @@ git log --pretty=format:"%h | %ad | %s" --date=short -N
 
 ### Step 4：处理「合入 gitee 代码」
 
-若 commit subject 含 `merge gitee code` / `合入 gitee`，去 gitee 仓库（默认 `E:\work\gitee\w6069`，见「路径」）取该时间点附近的 gitee 修改记录（通常是当天及上次合入之后的 `【MCU】`、`【MDM】` 提交）。
+若 commit subject 含 `merge gitee code` / `合入 gitee` / `同步gitee`，**或 commit body 含 `Sync from gitee`、指明了对应的 gitee commit（如 `Sync from gitee fy6718 commit cba3efd`）**，即为从 gitee 合并过来的代码。
+
+**从 gitee 合并过来的代码必须单独列出，不能混入 `修改的功能或需求`：**
+
+- 在条目中单列 `合入复云代码` 小节展示；对应的 commit 不再写入 `修改的功能或需求`。
+- **修改点以 gitee 上的 commit msg 为准**：去 gitee 仓库取该 commit 的 message，按其条目**原样列出**（一条 msg 含多条时可拆成多条），不要自行改写、翻译或补充。
+- gitee 仓库路径见「路径」（默认 `E:\work\gitee\w6069`）；若主仓库不是 W6069，用对应项目的 gitee 仓库，例如 fy6718 项目用 `E:\work\gitee\fy6718`。commit body 给出 gitee commit 号（如 `cba3efd`）时，直接取该 commit 的 msg；未给出时取该时间点附近的 gitee 修改记录（通常是当天及上次合入之后的提交）。
 
 - gitee 仓库的 commit 消息是 **UTF-8 编码**，PowerShell 默认按 GBK 解码会乱码，必须显式用 UTF-8 读取：
 
@@ -66,12 +75,12 @@ $p.WaitForExit()
 $p.StandardOutput.ReadToEnd()
 ```
 
-- gitee 记录用「合入复云代码」小节展示，按 `【MCU】`、`【MDM】` 分组。
+- gitee 记录用「合入复云代码」小节展示：W6069 等仓库按 `【MCU】`、`【MDM】` 分组；若 gitee commit msg 本身是普通条目，则按 msg 原样列出（不强行套 `【MCU】`/`【MDM】` 分组）。
 
 ### Step 5：确定版本号与时间
 
 - **版本号**：取时间范围内最后一次 `modify version to X` 的版本号 `X`，前缀按该仓库现有 release notes 的写法（W6069 为 `W6069_V` + X，如 `W6069_VJ9.4.3`；其它仓库沿用其历史前缀）。
-- **时间**：用该版本号 commit 的日期；若拿不准（例如现有 release notes 日期晚于 commit 日期），**问用户**。
+- **时间**：写入的时间必须**晚于本条目所有修改点的合入时间点**（取各修改点 commit 日期中最晚者做下界）。一般直接**用用户要求更新 release notes 的当天日期**；若拿不准（例如当天早于某些修改点的合入日期），**问用户**。
 - 时间范围内没有版本号 commit 时，问用户用哪个版本号。
 
 ### Step 6：写入 release notes（只新增，不改旧）

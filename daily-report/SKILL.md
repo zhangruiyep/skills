@@ -1,6 +1,6 @@
 ---
 name: "daily-report"
-description: "工作日报撰写指南。当用户提到写日报、生成日报、帮我写份日报、daily report 等关键词时自动触发，无需显式指定。把当天工作内容整理成日报，输出为可直接粘贴到企业微信邮件正文的纯文本，方便用户直接复制发送。"
+description: "工作日报撰写指南。当用户提到写日报、生成日报、帮我写份日报、daily report 等关键词时自动触发，无需显式指定。把当天工作内容整理成日报，输出为可直接粘贴到企业微信邮件正文的纯文本，方便用户直接复制发送；也可按固定收件人 / 抄送与标题（日报 Leon <当天日期>）通过企业微信邮件发送。"
 ---
 
 # 日报撰写指南 (Daily Report)
@@ -105,6 +105,90 @@ description: "工作日报撰写指南。当用户提到写日报、生成日报
 
 - 默认输出**纯文本直粘版**（不带任何 Markdown / HTML 标记），并在回复中用**代码块**包裹，便于整段复制到企业微信邮件正文。
 - 标题「进展」「计划」不加粗、不加装饰；若用户希望加粗，提示其在邮件客户端选中后 `Ctrl+B`。
-- 若用户明确要求 Markdown 或 HTML 版本，则改按该格式输出（Markdown 版：`**进展**` / `**计划**` 粗体标题，标题与正文间空一行，任务内用行尾两空格硬换行、不加空行，不同任务之间空一行）。
+- 若用户明确要求 Markdown 或 HTML 版本，则改按该格式输出（Markdown 版：`**进展**` / `**计划**` 粗体标题，标题与正文间空一行，任务内每行末尾加 `<br>` 硬换行、不加空行，不同任务之间空一行）。
 - 输出直接呈现在回复中，除非用户明确要求写入文件 / 追加到指定文档。
 - 生成后可主动询问用户是否需要调整措辞、增删条目或补充计划。
+
+## 发送日报邮件（企业微信）
+
+当日报写好、用户要求发送时，按下述固定配置通过企业微信邮件发送。
+
+### 收件人 / 抄送（默认固定，用户可覆盖）
+
+收件人（to）：
+
+- peter `<peter@deepailink.com>`
+- 孟子天宇 `<mengzitianyu@deepailink.com>`
+- liuxun `<liuxun@deepailink.com>`
+- 常佳伟 `<changjiawei@deepailink.com>`
+- 吕豪 `<lvhao@deepailink.com>`
+- 李星 `<lixing@deepailink.com>`
+
+抄送（cc）：
+
+- Luke `<luke@deepailink.com>`
+- Jhon `<liuzhanwang@deepailink.com>`
+- monica `<monica@deepailink.com>`
+- Iris `<iris@deepailink.com>`
+- 刘坪崎 `<liupingqi@deepailink.com>`
+- zoomonkey `<zoomonkey@deepailink.com>`
+
+### 标题
+
+格式固定为 `日报 Leon <日期>`。
+
+- `<日期>` **可变，默认取当天**，写作「月+日」形式（如 `10月13日`，即 `日报 Leon 10月13日`）。
+- 仅当用户明确指定日期时，才改用用户给出的日期。
+
+### 邮件正文格式
+
+邮件正文按 Markdown 渲染，与纯文本直粘版略有差异：
+
+- 「进展」「计划」写成加粗标题 `**进展**` / `**计划**`，标题与正文之间空一行。
+- **同一任务内部的换行，必须在每行末尾加 `<br>`**（任务行与其细节行之间、相邻细节行之间都要），否则 Markdown 会把同一条目内的多行合并成一段。
+  **注意：行尾两个空格（Markdown 硬换行）在企业微信邮件里不生效，切勿使用。** 实测有效的三种写法：行尾 `<br>`、行尾反斜杠 `\`、行间空一行；其中 `<br>` 最稳妥且不额外增加行距，**默认用 `<br>`**。
+- 不同任务之间空一行；细节行仍用行首两个全角空格（`　　`）缩进、不加圆点。
+
+邮件正文模板（注意每行末尾的 `<br>`）：
+
+```
+**进展**
+
+1. <项目名> <任务主题>。<状态><br>
+　　<进度细节第 1 行><br>
+　　<进度细节第 2 行>
+
+2. <项目名> <任务主题>。<状态><br>
+　　<进度细节>
+
+**计划**
+
+1. <项目名> <任务主题>。<br>
+　　<计划细节>
+```
+
+### wecom-cli 使用规则
+
+1. **先读技能文档**：执行任何 `wecom-cli` 命令前，先读取 `wecomcli-shared`（公共前置检查）与 `wecomcli-email`（发信流程）技能文档，按其规范执行。
+2. **版本检查**：`wecom-cli --version` 需不低于 `1.2.1`。PATH 中的内置版本可能偏低（如 `1.1.0`）；若低于要求，**改用 npm 全局版本**，用全路径调用：
+   `C:\Users\zhang\AppData\Local\Programs\nodejs\wecom-cli.cmd`
+   不要为此重新安装。
+3. **授权检查**：`wecom-cli auth show --status` 输出 `authorized` 才可发信；未授权时按 `wecomcli-shared` 走初始化流程。
+4. **中文编码**：调用前将 `$OutputEncoding` 与 `[Console]::OutputEncoding` 设为 UTF-8，避免中文标题乱码。
+5. **正文走文件**：把 Markdown 正文写入临时文件（如 `%TEMP%\wecom_mail_body_<唯一后缀>.md`），命令里用 `file_path` 指向该文件、`content_type` 填 `markdown`。
+6. **收件人无需查通讯录**：收件人 / 抄送均为完整邮箱地址，直接填入 `to.emails` / `cc.emails`。
+7. **先预览、待确认**：发送前先在对话中展示主题、收件人 / 抄送与正文预览；**默认等待用户确认后再发送**，除非用户明确表示直接发送。
+8. **发送后**：向用户确认「邮件已成功发送」并展示收件人与主题；不得外露 `mail_id` 等内部 ID。发送完成可清理临时正文文件。
+
+调用示例（PowerShell）：
+
+```powershell
+$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 | Out-Null
+& "C:\Users\zhang\AppData\Local\Programs\nodejs\wecom-cli.cmd" mail send --json '{
+  "to": { "emails": ["peter@deepailink.com","mengzitianyu@deepailink.com","liuxun@deepailink.com","changjiawei@deepailink.com","lvhao@deepailink.com","lixing@deepailink.com"] },
+  "cc": { "emails": ["luke@deepailink.com","liuzhanwang@deepailink.com","monica@deepailink.com","iris@deepailink.com","liupingqi@deepailink.com","zoomonkey@deepailink.com"] },
+  "subject": "日报 Leon 10月13日",
+  "file_path": "%TEMP%\\wecom_mail_body_daily.md",
+  "content_type": "markdown"
+}'
+```
